@@ -16,6 +16,7 @@ env:
     - VIPS_VERSION_MAJOR=8
     - VIPS_VERSION_MINOR=10
     - VIPS_VERSION_MICRO=1
+    - VIPS_NOVECTOR=1 
 
 addons:
   apt:
