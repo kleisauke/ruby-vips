@@ -1,26 +1,46 @@
-#!/bin/bash 
+#!/usr/bin/env bash
 
-vips_site=https://github.com/libvips/libvips/releases/download
-version=$VIPS_VERSION_MAJOR.$VIPS_VERSION_MINOR.$VIPS_VERSION_MICRO
+# Define variables
+version=$VIPS_VERSION
+pre_version=$VIPS_PRE_VERSION
+tag_version=$version${pre_version:+-$pre_version}
+vips_tarball=https://github.com/libvips/libvips/releases/download/v$tag_version/vips-$tag_version.tar.gz
 
+# Exit immediately if a command exits with a non-zero status
 set -e
 
-# do we already have the correct vips built? early exit if yes
-# we could check the configure params as well I guess
+# Do we already have the correct vips built?
 if [ -d "$HOME/vips/bin" ]; then
-	installed_version=$($HOME/vips/bin/vips --version)
-	escaped_version="$VIPS_VERSION_MAJOR\.$VIPS_VERSION_MINOR\.$VIPS_VERSION_MICRO"
-	echo "Need vips-$version"
-	echo "Found $installed_version"
-	if [[ "$installed_version" =~ ^vips-$escaped_version ]]; then
-		echo "Using cached directory"
-		exit 0
-	fi
+    installed_version=$($HOME/vips/bin/vips --version | awk -F- '{print $2}')
+    echo "Need vips $version"
+    echo "Found vips $installed_version"
+
+    if [ "$installed_version" = "$version" ]; then
+        echo "Using cached vips directory"
+        exit 0
+    fi
 fi
 
-rm -rf $HOME/vips
-wget $vips_site/v$version/vips-$version.tar.gz
-tar xf vips-$version.tar.gz
-cd vips-$version
-CXXFLAGS=-D_GLIBCXX_USE_CXX11_ABI=0 ./configure --prefix=$HOME/vips $*
-make && make install
+# Make sure the vips folder exist
+mkdir -p "$HOME/vips"
+
+# Do we need to install vips from source?
+if [ "$version" = "master" ]; then
+    echo "Installing vips from source"
+
+    git clone -b master --single-branch https://github.com/libvips/libvips.git vips-$version
+    cd vips-$version
+    ./autogen.sh --prefix="$HOME/vips" "$@"
+    make -j$JOBS && make install
+else
+    echo "Installing vips $version"
+
+    curl -Ls $vips_tarball | tar xz
+    cd vips-$version
+    ./configure --prefix="$HOME/vips" "$@"
+    make -j$JOBS && make install
+fi
+
+# Clean-up build directory
+cd ../
+rm -rf vips-$version

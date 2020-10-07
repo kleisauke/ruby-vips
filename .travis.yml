@@ -8,15 +8,14 @@ dist: xenial
 
 env:
   global:
+    #- VIPS_VERSION=8.10.1
+    - VIPS_VERSION=master
+    - JOBS=`nproc`
     - JRUBY_OPTS="--dev --debug"
     - LD_LIBRARY_PATH=$HOME/vips/lib:$LD_LIBRARY_PATH
     - NOKOGIRI_USE_SYSTEM_LIBRARIES=true
     - PATH=$HOME/vips/bin:$PATH
     - PKG_CONFIG_PATH=$HOME/vips/lib/pkgconfig:$PKG_CONFIG_PATH
-    - VIPS_VERSION_MAJOR=8
-    - VIPS_VERSION_MINOR=10
-    - VIPS_VERSION_MICRO=1
-    - VIPS_NOVECTOR=1 
 
 addons:
   apt:
@@ -38,6 +37,9 @@ addons:
       - libpoppler-glib-dev
       - librsvg2-dev
       - libwebp-dev
+      # needed for building libvips from source
+      - gtk-doc-tools
+      - gobject-introspection
 
 cache:
   bundler: true
@@ -65,7 +67,10 @@ gemfile:
 
 before_install:
   - uname -a
-  - bash install-vips.sh
+  - |
+    bash install-vips.sh \
+      --disable-dependency-tracking \
+      --disable-deprecated
 
 jobs:
   fast_finish: true
